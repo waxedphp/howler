@@ -122,6 +122,11 @@ Unload and destroy a Howl object. This will immediately stop all sounds attached
 
   protected array $commands = [
   ];
+
+  protected array $tracks = [
+  ];
+  
+  private string $route = '/tracks/{PATH}';
   
   /**
    * allowed options
@@ -130,6 +135,11 @@ Unload and destroy a Howl object. This will immediately stop all sounds attached
    */
   protected array $_allowedOptions = [
   ];
+  
+  function setRoute(string $value) {
+    $this->route = $value;
+    return $this;
+  }
 
   function setValue($value) {
     $this->setup['value'] = $value;
@@ -146,8 +156,150 @@ Unload and destroy a Howl object. This will immediately stop all sounds attached
     return $this;
   }
   
-  function play() {
-    $this->commands[] = 'play';
+  function play(int $n = 0) {
+    $this->commands[] = [
+      'cmd' => 'play',
+      'num' => intval($n),
+    ];
+    return $this;
+  }
+
+  function stop() {
+    $this->commands[] = [
+      'cmd' => 'stop'
+    ];
+    return $this;
+  }
+
+  function addTrack(string|array $value, array $data = []) {
+    $allowedParams = [
+      'thumb', 'image',
+      'ACOUSTID_ID',//TXXX:Acoustid Id 	TXXX:Acoustid Id 	----:com.apple.iTunes:Acoustid Id 				
+      'ACOUSTID_FINGERPRINT',//TXXX:Acoustid Fingerprint 	TXXX:Acoustid Fingerprint 	----:com.apple.iTunes:Acoustid Fingerprint 				
+      'ALBUM', //TALB 	TALB 	©alb 	T=50 TITLE 	WM/AlbumTitle 	IPRD 	
+      'ALBUMSORT', //TSOA 	TSOA 	soal 	T=50 SORT_WITH 	WM/AlbumSortOrder 		
+      'ALBUMARTIST', //TPE2 	TPE2 	aART 	T=50 ARTIST 	WM/AlbumArtist 		
+      'ALBUMARTISTSORT',//TSO2 	TSO2 	soaa 	T=30 			
+      'ARTIST',//TPE1 	TPE1 	©art 	T=30 ARTIST 	Author 	IART 	
+      'ARTISTSORT',//TSOP 	TSOP 	soar 	T=30 	WM/ArtistSortOrder 		
+      'BARCODE',//TXXX:BARCODE 	TXXX:BARCODE 	----:com.apple.iTunes:BARCODE 	T=30 	WM/Barcode 		Field is used when importing via MusicBrainz (since Mp3tag v3.13).
+      'BPM',//TBPM 	TBPM 	tmpo 	T=30 	WM/BeatsPerMinute 		
+      'CATALOGNUMBER',//TXXX:CATALOGNUMBER 	TXXX:CATALOGNUMBER 	----:com.apple.iTunes:CATALOGNUMBER 	T=30 	WM/CatalogNo 		Field is used when importing via Discogs and MusicBrainz (since Mp3tag v3.13).
+      'COMMENT',//COMM 	COMM 	©cmt 	T=30 	Description 	ICMT 	
+      'COMPILATION',//TCMP 	TCMP 	cpil 	T=30 			Field that is used by iTunes to mark albums as compilation. Either enter the value 1 or delete the field.
+      'COMPOSER',//TCOM 	TCOM 	©wrt 	T=30 	WM/Composer 		
+      'COMPOSERSORT',//TSOC 	TSOC 	soco 	T=30 			
+      'CONDUCTOR',//TPE3 	TPE3 	©con 	T=30 	WM/Conductor 		
+      'CONTENTGROUP',//TIT1 	TIT1 	©grp 	T=30 	WM/ContentGroupDescription 		
+      'COPYRIGHT',//TCOP 	TCOP 	cprt 	T=30 	Copyright 	ICOP 	
+      'DATE',//TDAT 	TXXX:DATE 					
+      'DESCRIPTION',//desc 	T=30 			
+      'DISCNUMBER',//TPOS 	TPOS 	disk 	T=50 PART_NUMBER 	WM/PartOfSet 		
+      'ENCODEDBY',//TENC 	TENC 	©enc 	T=30 ENCODED_BY 	WM/EncodedBy 		
+      'ENCODERSETTINGS',//TSSE 	TSSE 		T=30 	WM/EncodingSettings 		
+      'ENCODINGTIME',//	TDEN 		T=30 	WM/EncodingTime 		
+      'FILEOWNER',//TOWN 	TOWN 		T=30 PURCHASE_OWNER 			
+      'FILETYPE',//TFLT 	TFLT 		T=30 			
+      'GENRE',//TCON 	TCON 	©gen | gnre 	T=30 	WM/Genre 	IGNR 	
+      'GROUPING',//GRP1 	GRP1 		T=30 			
+      'INITIALKEY',//TKEY 	TKEY 		T=30 INITIAL_KEY 	WM/InitialKey 		
+      'INVOLVEDPEOPLE',//IPLS 	TIPL 		T=30 			Role1:Person1;Role2:Person2; … e.g., Drums:Jamie Graham;
+      'ISRC',//TSRC 	TSRC 		T=30 	WM/ISRC 		
+      'LANGUAGE',//TLAN 	TLAN 		T=30 	WM/Language 	ILNG 	
+      'LENGTH',//TLEN 	TLEN 		T=30 			
+      'LYRICIST',//TEXT 	TEXT 		T=30 			
+      'MEDIATYPE',//TMED 	TMED 		T=50 ORIGINAL_MEDIA_TYPE 			
+      'MIXARTIST',//TPE4 	TPE4 		T=30 REMIXED_BY 			
+      'MOOD',//	TMOO 		T=30 	WM/Mood 		
+      'MOVEMENTNAME',//MVNM 	MVNM 	©mvn 	T=20 TITLE 			
+      'MOVEMENT',//MVIN 	MVIN 	©mvi 	T=20 PART_NUMBER 			
+      'MOVEMENTTOTAL',//MVIN 	MVIN 	©mvc 	T=30 			
+      'MUSICBRAINZ_ALBUMARTISTID',//TXXX:MusicBrainz Album Artist Id 	TXXX:MusicBrainz Album Artist Id 	----:com.apple.iTunes:MusicBrainz Album Artist Id 				
+      'MUSICBRAINZ_ALBUMID',//TXXX:MusicBrainz Album Id 	TXXX:MusicBrainz Album Id 	----:com.apple.iTunes:MusicBrainz Album Id 				
+      'MUSICBRAINZ_ALBUMRELEASECOUNTRY',//TXXX:MusicBrainz Album Release Country 	TXXX:MusicBrainz Album Release Country 	----:com.apple.iTunes:MusicBrainz Album Release Country 				
+      'MUSICBRAINZ_ALBUMSTATUS',//TXXX:MusicBrainz Album Status 	TXXX:MusicBrainz Album Status 	----:com.apple.iTunes:MusicBrainz Album Status 				
+      'MUSICBRAINZ_ALBUMTYPE',//TXXX:MusicBrainz Album Type 	TXXX:MusicBrainz Album Type 	----:com.apple.iTunes:MusicBrainz Album Type 				
+      'MUSICBRAINZ_ARTISTID',//TXXX:MusicBrainz Artist Id 	TXXX:MusicBrainz Artist Id 	----:com.apple.iTunes:MusicBrainz Artist Id 				
+      'MUSICBRAINZ_DISCID',//TXXX:MusicBrainz Disc Id 	TXXX:MusicBrainz Disc Id 	----:com.apple.iTunes:MusicBrainz Disc Id 				
+      'MUSICBRAINZ_ORIGINALALBUMID',//TXXX:MusicBrainz Original Album Id 	TXXX:MusicBrainz Original Album Id 	----:com.apple.iTunes:MusicBrainz Original Album Id 				
+      'MUSICBRAINZ_ORIGINALARTISTID',//TXXX:MusicBrainz Original Artist Id 	TXXX:MusicBrainz Original Artist Id 	----:com.apple.iTunes:MusicBrainz Original Artist Id 				
+      'MUSICBRAINZ_RELEASEGROUPID',//TXXX:MusicBrainz Release Group Id 	TXXX:MusicBrainz Release Group Id 	----:com.apple.iTunes:MusicBrainz Release Group Id 				
+      'MUSICBRAINZ_RELEASETRACKID',//TXXX:MusicBrainz Release Track Id 	TXXX:MusicBrainz Release Track Id 	----:com.apple.iTunes:MusicBrainz Release Track Id 				
+      'MUSICBRAINZ_TRACKID',//UFID:http://musicbrainz.org 	UFID:http://musicbrainz.org 	----:com.apple.iTunes:MusicBrainz Track Id 				
+      'MUSICBRAINZ_TRMID',//TXXX:MusicBrainz TRM Id 	TXXX:MusicBrainz TRM Id 	----:com.apple.iTunes:MusicBrainz TRM Id 				
+      'MUSICBRAINZ_WORKID',//TXXX:MusicBrainz Work Id 	TXXX:MusicBrainz Work Id 	----:com.apple.iTunes:MusicBrainz Work Id 				
+      'MUSICIANCREDITS',//TMCL 		T=30 			Role1:Person1;Role2:Person2; … e.g., Drums:Jamie Graham;
+      'NARRATOR',//		©nrt 	T=30 			
+      'NETRADIOOWNER',//TRSO 	TRSO 		T=30 			
+      'NETRADIOSTATION',//TRSN 	TRSN 		T=30 			
+      'ORIGALBUM',//TOAL 	TOAL 		T=30 	WM/OriginalAlbumTitle 		
+      'ORIGARTIST',//TOPE 	TOPE 		T=30 	WM/OriginalArtist 		
+      'ORIGFILENAME',//TOFN 	TOFN 		T=30 	WM/OriginalFilename 		
+      'ORIGLYRICIST',//TOLY 	TOLY 		T=30 	WM/OriginalLyricist 		
+      'ORIGYEAR',//TORY 	TDOR 		T=30 	WM/OriginalReleaseYear 		
+      'PODCAST',//PCST 	PCST 	pcst 	T=30 			Field that is used by iTunes to mark tracks as podcasts. Either enter the value 1 or delete the field.
+      'PODCASTCATEGORY',//TCAT 	TCAT 	catg 	T=30 			
+      'PODCASTDESC',//TDES 	TDES 	ldes 	T=30 			
+      'PODCASTID',//TGID 	TGID 	egid 	T=30 			
+      'PODCASTKEYWORDS',//TKWD 	TKWD 	keyw 	T=30 			
+      'PODCASTURL',//WFED 	WFED 	purl 	T=30 			
+      'POPULARIMETER',//POPM 	POPM 		T=30 			This description is for only ID3v2 tags. The playcounter is an optional value. The Rating is an integer between 1 (worst) and 255 (best). Syntax: Email|Rating|Playcounter
+      'PUBLISHER',//TPUB 	TPUB 	©pub 	T=30 	WM/Publisher 		
+      'RATING',// MM
+      'POPM',// 	POPM 		T=30 			Abstraction on POPULARIMETER as used in MediaMonkey. Track rating from 1 = Bad to 5 = Very good. You can also enter stars * (and - for half stars) for rating the track. Use Options → Tags → Advanced to always display POPULARIMETER values.
+      //RATING WMP
+      //POPM 	POPM 		T=30 	WM/SharedUserRating 		Abstraction on POPULARIMETER as used in Windows Media Player. Track rating from 1 = Bad to 5 = Very good. You can also enter stars * for rating the track. Use Options → Tags → Advanced to always display POPULARIMETER values.
+      'RELEASETIME',//TDRL 	TDRL 		T=50 DATE_RELEASED 			
+      'SETSUBTITLE',//TSST 		T=50 SUBTITLE 			
+      'SUBTITLE',//TIT3 	TIT3 		T=30 	WM/SubTitle 		
+      'TAGGINGTIME',//	TDTG 		T=30 DATE_TAGGED 			
+      'TITLE',//TIT2 	TIT2 	©nam 	T=30 	Title 	INAM 	
+      'TITLESORT',//TSOT 	TSOT 	sonm 	T=30 SORT_WITH 	WM/TitleSortOrder 		
+      'TRACK',//TRCK 	TRCK 	trkn 	T=30 PART_NUMBER 	WM/TrackNumber 	ITRK 	
+      'UNIQUEFILEID',//UFID 	UFID 					
+      'UNSYNCEDLYRICS',//USLT 	USLT 	©lyr 	T=30 LYRICS 	WM/Lyrics 		Syntax: xxx||Lyrics where xxx = Language of the lyrics, abbreviated by 3 characters according to ISO-639-2.
+      'WWW',//WXXX 	WXXX 		T=30 			
+      'WWWARTIST',//WOAR 	WOAR 		T=30 	WM/AuthorURL 		
+      'WWWAUDIOFILE',//WOAF 	WOAF 		T=30 	WM/AudioFileURL 		
+      'WWWAUDIOSOURCE',//WOAS 	WOAS 		T=30 	WM/AudioSourceURL 		
+      'WWWCOMMERCIALINFO',//WCOM 	WCOM 		T=30 PURCHASE_INFO 	WM/PromotionURL 		
+      'WWWCOPYRIGHT',//WCOP 	WCOP 		T=30 	CopyrightURL 		
+      'WWWPAYMENT',//WPAY 	WPAY 		T=30 PURCHASE_ITEM 			
+      'WWWPUBLISHER',//WPUB 	WPUB 		T=30 			
+      'WWWRADIOPAGE',//WORS 	WORS 		T=30 			
+      'YEAR',//TYER 	TDRC 	©day'
+    ];
+    $d = [];
+    if (is_string($value)) {
+      $value = str_replace('{PATH}', $value, $this->route);
+      $d['url'] = $value;
+    } else if (is_array($value)) {
+      $data = array_merge($data, $value);
+    };
+    if (!empty($data)) {
+      foreach ($data as $k => $v) {
+        if (in_array($k, $allowedParams)) {
+          $d[$k] = $v;
+        }
+      };
+    };
+    $this->tracks[] = $d;
+    return $this;
+  }
+  
+  function addFolder(string $dir, string $pattern = '*.{mp3,ogg}') {
+    $prevDir = getcwd();//"./*/*.{mp3,ogg}"
+    if (is_dir($dir)) {
+      chdir($dir);
+      //echo "DIR! " . $dir;
+      foreach (glob($pattern, \GLOB_BRACE) as $filename) {
+          //echo "$filename\n";
+          $this->addTrack($filename);
+      }
+      chdir($prevDir);
+    } else {
+      //echo "NOT DIR!";
+    }
     return $this;
   }
 
@@ -157,7 +309,7 @@ Unload and destroy a Howl object. This will immediately stop all sounds attached
   * @param mixed $value
   * @return array<mixed>
   */
-  public function value(mixed $value): array {
+  public function value(mixed $value = null): array {
     $a = [];
     $b = $this->getArrayOfAllowedOptions();
     if (!empty($b)) {
@@ -166,7 +318,13 @@ Unload and destroy a Howl object. This will immediately stop all sounds attached
     if (!empty($this->commands)) {
       $a['commands'] = $this->commands;
     }
-    $a['value'] = $value;
+    if (!is_null($value)) {
+      $a['value'] = $value;
+    } else {
+      if (!empty($this->tracks)) {
+        $a['value'] = $this->tracks;
+      };
+    };
     return $a;
   }
 
