@@ -250,7 +250,8 @@ Unload and destroy a Howl object. This will immediately stop all sounds attached
       //RATING WMP
       //POPM 	POPM 		T=30 	WM/SharedUserRating 		Abstraction on POPULARIMETER as used in Windows Media Player. Track rating from 1 = Bad to 5 = Very good. You can also enter stars * for rating the track. Use Options → Tags → Advanced to always display POPULARIMETER values.
       'RELEASETIME',//TDRL 	TDRL 		T=50 DATE_RELEASED 			
-      'SETSUBTITLE',//TSST 		T=50 SUBTITLE 			
+      'SETSUBTITLE',//TSST 		T=50 SUBTITLE 	
+      'SLUG',		
       'SUBTITLE',//TIT3 	TIT3 		T=30 	WM/SubTitle 		
       'TAGGINGTIME',//	TDTG 		T=30 DATE_TAGGED 			
       'TITLE',//TIT2 	TIT2 	©nam 	T=30 	Title 	INAM 	

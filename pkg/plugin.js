@@ -126,15 +126,17 @@
       this.dd = dd;
       this.name = '';
       this.sound = null;
+      this.justStarted = true;
       this.song = 0;
       this.playing = 0;
       this.interval = null;
       this.progress = [];
       this.buttons = [];
       this.spans = [];
+      this.playlist = [];
       this.id3s = {};
       this.cfg = {
-        src: '/snd/blyskanie.mp3',
+        src: '/x.mp3',
         html5: true
       };
 
@@ -151,7 +153,7 @@
           //this.free();
           //this.cfg.src = rec.value;
           this.loadTracks(rec.value);
-          that.sound.changeSrc(this.cfg.src);
+          //that.sound.changeSrc(this.cfg.src);
           //this.make();          
         } else if (typeof rec.value == 'string') {
           //this.free();
@@ -190,6 +192,8 @@
       this.loadTracks = function(o) {
         var t = [];
         var id3s = {};
+        //console.log(o);
+        that.playlist = [];
         
         for(var i=0;i<o.length;i++) {
           var id3 = {};
@@ -204,13 +208,30 @@
             
           }
           if (fn) {
-            t.push(fn);
-            id3s[fn] = id3;
+            that.playlist.push({
+              'url':fn,
+              'id3':id3
+            });
           };
         };
-        this.cfg.src = t;
-        this.id3s = id3s;
+        that.loadTrack(0);
         
+      },
+
+      this.loadTrack = function(num) {
+        if (typeof num !== 'number') return false;
+        if (num < 0) return false;
+        if (that.playlist.length>num) {
+          var t = []; var id3s = {};
+          t.push(that.playlist[num].url);
+          id3s[that.playlist[num].url] = that.playlist[num].id3;
+          this.cfg.src = t;
+          this.id3s = id3s;
+          that.sound.changeSrc(this.cfg.src);
+          that.sound.load();
+          return true;
+        };
+        return false;
       },
 
       this.displayID3 = function(s) {
@@ -248,10 +269,11 @@
           &&(typeof that.cfg.src == 'object')
           &&(that.song<that.cfg.src.length)) {
             //console.log('PLAY:', that.song);
-          var a = that.sound.play(that.song);
+          var a = that.sound.play();
         } else {
           var a = that.sound.play();
         }
+        that.justStarted = false;
         //console.log('?',a);
         that.playing = 1;
         setTimeout(function(){
@@ -281,13 +303,17 @@
         if (that.sound == null) return;
         that.stop();
         if(that.song>0)that.song--;
-        that.onEvent('prev', ev);
+        //console.log(that.song);
+        that.loadTrack(that.song)
+        //if (!that.loadTrack(that.song)) that.onEvent('prev', ev);
       },
       this.next = function(ev) {
         if (that.sound == null) return;
         that.stop();
         that.song++;
-        that.onEvent('next', ev);
+        //console.log(that.song);
+        that.loadTrack(that.song)
+        //if (!that.loadTrack(that.song)) that.onEvent('next', ev);
       },
       this.mute = function() {
         if (that.sound == null) return;
@@ -312,6 +338,8 @@
       this.seek = function(ev) {
         
         if (that.sound == null) return;
+        if (typeof that.sound == 'undefined') return;
+        if (that.sound.state()!='loaded') return;
         /*
         const target = ev.target;
 
@@ -342,13 +370,14 @@
       },
       this.onEvent = function(name, a,b,c) {
         //console.log(name,a,b,c);
+        //console.log(name,$(a.currentTarget).data());
         if ((typeof that.dd.url == 'string')&&(typeof that.dd.name == 'string')&&(typeof that.dd.action == 'string')) {
-          var o = {
-            'action' : that.dd.action+'/'+name
-          };
+          var o = Object.assign({}, that.dd);
+          o['action'] = that.dd.action+'/'+name;
           o['src'] = that.cfg.src;
           o['name'] = that.dd.name;
-          o['song'] = this.song;
+          o['song'] = that.song;
+          delete o.url;
           that.pluggable.sendData(o,that.dd.url,that);
         };
       },
@@ -363,6 +392,8 @@
         that.sound = new Howl(this.cfg);
         this.interval = setInterval(function() {
           if (that.sound == null) return;
+          if (typeof that.sound == 'undefined') return;
+          if (that.sound.state()!='loaded') return;
           const width = (that.sound.seek() / that.sound.duration()) * 100;
           $(that.progress).each(function(i,a){
             if (isNaN(width)) return;
@@ -371,9 +402,25 @@
             if (h!='seek') return;
             $(a).val(width);
           });
-        },100);        
-        that.sound.on('stop', function(ev){that.onEvent('stop', ev);});
-        that.sound.on('end', function(ev){that.playing = 0;that.song++;that.onEvent('end', ev);});
+        },100);   
+        that.sound.on('load', function() {
+          //console.log('LOAD');
+          if (!that.justStarted) that.play();
+          /*
+          that.sound.once('stop', function(ev){that.onEvent('stop', ev);});
+          that.sound.once('end', function(ev){
+            that.playing = 0;
+            that.song++;
+            if (that.loadTrack(Number(that.song))) {
+              that.play();
+            } else that.onEvent('end', ev);
+          });
+          */
+        });
+        that.sound.on('end', function(ev){
+          //console.log('END');
+          that.next();
+        });
       },
       
       this.free = function() {
@@ -410,7 +457,17 @@
           var h = $(a).data('howler');
           switch(h) {
             case 'play':
-              $(a).on('click', that.play);
+              $(a).on('click', function(ev) {
+                var num = $(ev.currentTarget).data('value');
+                if (typeof num != 'undefined') {
+                  
+                  that.stop();
+                  that.song = Number(num);
+                  //console.log(that.song);
+                  that.loadTrack(that.song);
+                };
+                that.play();
+              });
               break;
             case 'pause':
               $(a).on('click', that.pause);
@@ -436,6 +493,7 @@
         });
         
         that.make();
+        //that.onEvent('init',null);
 
         
 
